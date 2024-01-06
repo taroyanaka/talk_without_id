@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>service_index</title>
+    <link rel="stylesheet" href="./lib/reset.css">
+    <script src="./lib/vue@3.2.36.global.prod.js"></script>
+  <style>
+.service_list{
+  font-size: 3rem;
+}
+.version_data{
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+  font-size: 1.5rem;
+}
+  </style>
+</head>
+<body>
+<div class="app">
+<!-- urlListをul liでリスト表示してhrefで飛べるようにする -->
+<ul>
+  <li v-for="url, idx in urlList" class="service_list">
+    <a :href="url">{{serviceList[idx]['name']}}: {{serviceList[idx]['desc']}}</a>
+  </li>
+</ul>
+</div>
+
+<!-- 薄く透けた灰色でver1.0と表記する -->
+<div class="version_data">ver1.0.0.0.5.7</div>
+
+</body>
+<script>
+const app = Vue.createApp({
+data() {
+    return {
+serviceList: [
+  {'name': 'q_a', 'desc': 'flash card: Question Answer'},
+  {'name': 'f_i_b', 'desc': 'fill in blank question: Fill In Blank'},
+  {'name': 'f_i_b', 'desc': 'fill in blank question: Fill In Blank'},
+
+  {'name': 'tile', 'desc': 'tyle style memory tool'},
+  // portal(portal.html)
+  {'name': 'portal', 'desc': 'portal page: Portal'},
+
+],
+urlList: [],
+    }
+},
+// watch: {
+//    any: {
+//      handler() {
+//      },
+//      deep: true
+//    },
+// },
+beforeMounte(){
+},
+mounted() {
+  this.loadSites();
+},
+beforeUpdate() {
+},
+updated() {
+},
+methods: {
+  loadSites() {
+    // テスト環境でも本番環境でも動く
+    // http://127.0.0.1:3000/ or https://taroyanaka.github.io/q_a/ を想定
+    function getBaseURL() {
+        const url = window.location.href;
+        let baseURL = new URL(url).origin;
+        // baseURLがlocalhostを含んでいない場合baseURLをhttps://taroyanaka.github.io/q_a/に書き換える
+        // if (baseURL.includes('localhost') || baseURL.includes('http://127.0.0.1/')) {}
+        if(baseURL.includes('taroyanaka.github.io')){
+            baseURL = 'https://taroyanaka.github.io/q_a';
+        }
+        return baseURL;
+    }
+    // getBaseURL()でurlListを更新する
+    this.urlList = this.serviceList.map(it => getBaseURL() + '/' + it['name'] + '.html');
+    return this.urlList;
+  },
+},
+}).mount('.app');
+</script>
+</html>

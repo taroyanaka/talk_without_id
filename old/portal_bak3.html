@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>portal of q_a</title>
+    <link rel="stylesheet" href="./lib/reset.css">
+<script src="./lib/vue@3.2.36.global.prod.js"></script>
+<script src="./lib/ramda.@0.28.0.js"></script>
+<script src="./lib/my_global_function_for_q_a.js" defer></script>
+<style>
+.service_list{
+  font-size: 3rem;
+}
+.display_none{
+    display: none;
+}
+.flex_parent{
+  display: flex;
+  place-content: flex-start;
+}
+.flex_child{
+  display: flex;
+  /* justify-content: center; */
+  /* align-items:center; */
+  /* width:100px; */
+  /* height:100px; */
+}
+.display_flex_child_or_not_parent{
+    display: flex;
+    place-content: flex-start;
+    font: 2rem sans-serif;
+}
+/* .display_flex_child_or_not > label, */
+.display_flex_child_or_not > input{
+   /* checkboxのinputを縦横1.5rem1.5remにする */
+    width: 1.5rem;
+    height: 1.5rem;
+}
+.go_to_any_service_page{
+    /* buttonタグ */
+    /* ボタンの枠線を細くする(0.01rem) */
+    border: 0.01rem solid #000000;
+    /* 色を無色透明にする。フォントは黒 */
+    color: transparent;
+    /* 背景を無色透明にする */
+    background-color: transparent;
+    /* マウスオーバー時のカーソルをポインターにする */
+    cursor: pointer;
+    /* フォントカラーは黒でフォントサイズは1rem */
+    font: 1rem sans-serif;
+    width: 1.5rem;
+}
+
+
+
+
+/* .showDialogを.block_of_oneの右上端に表示する */
+.block_of_one {
+    position: relative;
+}
+.top_right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* .data_typeを.block_of_oneの右下端に表示する */
+.bottom_right {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-size: 1.5rem;
+}
+.bottom_middle {
+    position: absolute;
+    bottom: 0;
+    right: 50%;
+    font-size: 1.4rem;
+}
+
+.data_type, .created_at, .username, .id, .tags {
+    /* インライン要素に設定 */
+    display: inline-block;
+    font-size: 0.7rem;
+}
+
+.comment_and_tag {
+  padding: 10px;
+  border: 1px solid black;
+}
+
+.showDialog {
+    display: inline-block;
+}
+.dialog_ul {
+    display: inline-block;
+}
+
+.dialog_li {
+    display: inline-block;
+}
+
+.data_type, .download_data, .go_to_any_service_page_with_id {
+    display: inline-block;
+}
+.download_data, .go_to_any_service_page_with_id {
+    font-size: 1.5rem;
+}
+.synapse {
+    font-size: 2.5rem;
+}
+
+
+</style>
+</head>
+<body class="app">
+    <!-- service_listの表示非表示を切り替えられるボタン -->
+    <!-- <button @click="change_service_list_display">change_service_list_display</button>
+    <ul class="change_service_list_display_class" ref="change_service_list_display_class">
+        <li v-for="url, idx in urlList" class="service_list">
+          <a :href="url">{{serviceList[idx]['name']}}: {{serviceList[idx]['desc']}}</a>
+        </li>
+    </ul> -->
+
+<!-- selectとoptionでdata_type('q_a', 'f_i_b', 'i_t_n',)を選択 -->
+<textarea name="data1" id="" cols="30" rows="10" v-model="data1"></textarea>
+<textarea name="data2" id="" cols="30" rows="10" v-model="data2"></textarea>
+
+<div class="insert_option">
+<select v-model="data_type">
+    <option value="q_a">q_a</option>
+    <option value="f_i_b">f_i_b</option>
+    <option value="i_t_n">i_t_n</option>
+</select>
+<!-- <input type="text" v-model="data_json" placeholder="data_json"> -->
+<input type="text" v-model="name" placeholder="name">
+<input type="password" v-model="password" placeholder="password">
+</div>
+
+<div>
+    <input list="tag-options" v-model="search_tag" @input="fetch_get_tags_for_autocomplete" @change="fetch_get_tags_for_autocomplete">
+    <datalist id="tag-options">
+        <option v-for="(tag_option, tag_option_i) in tags" :value="tag_option.tag">{{ tag_option.tag }}</option>
+    </datalist>
+    <button @click="fetch_insert_tag(DATA_VAL['id'])">fetch_insert_tag</button>
+    <button @click="fetch_delete_tag(DATA_VAL['id'], Tag['id'])">fetch_delete_tag</button>
+</div>
+
+<div>
+show_user: <button v-if="show_user" @click="show_all_user">{{ show_user }}</button>
+show_tag: <button v-if="show_tag" @click="show_all_tag">{{ show_tag }}</button>
+change_show_order_by: <button @click="change_show_order_by">{{ show_order_by }}</button>
+</div>
+
+<button @click="fetch_insert_link">fetch_insert_link</button>
+<button @click="fetch_test_db_init">fetch_test_db_init</button>
+
+<!-- flex_child_displayをチェックボックスで管理する -->
+<!-- web_data, q_a_data, f_i_b_data, i_t_n_data それぞれのチェックボックスを作る -->
+<div class="display_flex_child_or_not_parent">
+    <span class="display_flex_child_or_not">
+        <input type="checkbox" id="web_data_id" v-model="web_data_id_isChecked" @change="flex_child_change_display" />
+        <label for="web_data_id">{{ web_data_id_isChecked ? 'web_data ' : ' web_data' }}</label>
+    </span>
+    <!-- q_a_data_id -->
+    <span class="display_flex_child_or_not">
+        <input type="checkbox" id="q_a_data_id" v-model="q_a_data_id_isChecked" @change="flex_child_change_display" />
+        <label for="q_a_data_id">{{ q_a_data_id_isChecked ? 'q_a' : ' q_a' }}</label>
+    </span>
+    <!-- f_i_b_data_id -->
+    <span class="display_flex_child_or_not">
+        <input type="checkbox" id="f_i_b_data_id" v-model="f_i_b_data_id_isChecked" @change="flex_child_change_display" />
+        <label for="f_i_b_data_id">{{ f_i_b_data_id_isChecked ? 'f_i_b' : ' f_i_b' }}</label>
+    </span>
+    <!-- i_t_n_data_id -->
+    <span class="display_flex_child_or_not">
+        <input type="checkbox" id="i_t_n_data_id" v-model="i_t_n_data_id_isChecked" @change="flex_child_change_display" />
+        <label for="i_t_n_data_id">{{ i_t_n_data_id_isChecked ? 'i_t_n' : ' i_t_n' }}</label>
+    </span>
+</div>
+
+<div class="flex_parent">
+    <div v-if="web_data['message']">
+    <div class="flex_child web_data" ref="flex_child_display_web_data">
+    <ul>
+    <li v-for="(DATA_VAL, DATA_IDX) in web_data['message']" class="block_of_one">
+        <div class="data_type" v-if="DATA_VAL['data_type']">{{ DATA_VAL['data_type'] }}</div>
+        <div class="download_data" @click="download_data(DATA_VAL['id'])">⬆️</div>
+        <div class="go_to_any_service_page_with_id" @click="go_to_any_service_page_with_id(DATA_VAL['data_type'], DATA_VAL['id'])">📂</div>
+
+        <span v-if="DATA_VAL['likes'].length === 0"
+            @click="fetch_like_increment_or_decrement(DATA_VAL['id'])">
+            {{ '♡' }}</span>
+
+        <span
+            v-for="(like, like_i) in DATA_VAL['likes']"
+            @click="fetch_like_increment_or_decrement(DATA_VAL['id'])">
+            {{ '❤️' }}</span>
+
+        
+        <ul>
+            <li v-for="(Tag, Tag_I) in DATA_VAL['tags']" class="tags">
+                <!-- <span>id: {{Tag['id']}}</span>         -->
+                <span><button @click="change_show_tag(Tag['tag'])">{{ Tag['tag'] }}</button></span>
+                <button v-if="DATA_VAL['tags'].length >0" @click="fetch_delete_tag(DATA_VAL['id'], Tag['id'])">🗑️</button>
+
+            </li>
+        </ul>
+        <div>
+            <input list="tag-options" v-model="search_tag" @input="fetch_get_tags_for_autocomplete" @change="fetch_get_tags_for_autocomplete">
+            <datalist id="tag-options" @click>
+                <option v-for="(tag_option, tag_option_i) in tags" :value="tag_option.tag">{{ tag_option.tag }}</option>
+            </datalist>
+            <button @click="fetch_insert_tag(DATA_VAL['id'])">🏷️🏷️🏷️</button>
+        </div>
+    
+        <!-- <button @click="fetch_like_increment_or_decrement(DATA_VAL['id'])">❤️♡</button> -->
+
+        <!-- <div v-if="DATA_VAL['data_type']"> -->
+        <!-- </div> -->
+
+<!-- <div class="block_of_one"> -->
+    <!-- <div> -->
+        <div class="top_right">
+            <ul class="dialog_ul">
+                <li  class="dialog_li" v-for="(Other_Of_One, Other_Of_One_I) in other_data_type(DATA_VAL['data_type'])">
+                    <span class="synapse" @click="synapse(DATA_VAL['data_type'], Other_Of_One,
+                        data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data1'],
+                        data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data2'],
+                    )" :style="{ display: synapse_visible ? 'block' : 'none' }">{{ choice_emoji(Other_Of_One) }}</span>
+                </li>
+            </ul>
+            <div @click="showDialog" class="showDialog">⚙️</div>
+        </div>
+
+        
+    <!-- ja: 右下 -->
+    <!-- en: bottom_right -->
+
+    <div class="bottom_right">
+        <div class="created_at">{{ date_time_form(DATA_VAL['created_at']) }}</div>
+        <button @click="change_show_user(DATA_VAL['username'])">{{ DATA_VAL['username'] }}</button>
+        <div class="id">{{ DATA_VAL['id'] }}</div>
+    </div>
+    <div class="clickable_for_short_or_long" @click="short_or_long( DATA_VAL['id'] )">
+        <div>{{ truncateText( data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data1'], DATA_VAL['id'] ) }}</div>
+        <div>{{ truncateText( data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data2'], DATA_VAL['id'] ) }}</div>
+    </div>
+    <div class="bottom_middle" @click="comment_and_tag_toggle">💬🗑️</div>
+    <div class="comment_and_tag" @click="comment_and_tag_toggle" :style="{ display: comment_and_tag_visible ? 'block' : 'none' }">
+        <ul>
+        <li v-for="(COMMENT_AND_REPLIES, COMMENT_IDX) in DATA_VAL['comments_and_replies']">
+            <!-- id: {{ COMMENT_AND_REPLIES[COMMENT_IDX]['id'] }} -->
+            <!-- {{ COMMENT_AND_REPLIES[COMMENT_IDX]['username'] }} -->
+            <!-- created_at: {{ COMMENT_AND_REPLIES[COMMENT_IDX]['created_at'] }} -->
+            {{ COMMENT_AND_REPLIES[COMMENT_IDX]['comment'] }}
+            <!-- comment: {{ COMMENT_AND_REPLIES[COMMENT_IDX]['comment'] }} -->
+            <button @click.stop="fetch_delete_comment(COMMENT_AND_REPLIES[COMMENT_IDX]['id'])">🗑️</button>
+            <button @click.stop="change_show_user(COMMENT_AND_REPLIES[COMMENT_IDX]['username'])">{{ COMMENT_AND_REPLIES[COMMENT_IDX]['username'] }}</button>
+            <input type="text" v-model="comment_reply" placeholder="comment_reply" @click.stop>
+            <button @click.stop="fetch_insert_comment_reply(COMMENT_AND_REPLIES[COMMENT_IDX]['id'])">💬</button>
+            <ul>
+                <li v-for="(REPLIES, REPLIES_PROP) in COMMENT_AND_REPLIES['comment_replies'] ">
+                <!-- id: {{ REPLIES['id'] }} -->
+                {{ REPLIES['reply'] }}
+                <!-- reply: {{ REPLIES['reply'] }} -->
+                <button @click.stop="change_show_user(REPLIES['username'])">{{ REPLIES['username'] }}</button>
+                <!-- username: <button @click.stop="change_show_user(REPLIES['username'])">{{ REPLIES['username'] }}</button> -->
+                <button @click.stop="fetch_delete_comment_reply(REPLIES['id'])">🗑️</button>
+                </li>
+            </ul>
+        </li>
+        </ul>
+        <input type="text" v-model="comment" placeholder="comment" @click.stop>
+        <button @click.stop="fetch_insert_comment(DATA_VAL['id'])">💬💬💬</button>                
+        <div>
+            <button @click.stop="fetch_delete_link(DATA_VAL['id'])">🗑️</button>
+        </div>
+    </div>
+    </li>
+    </ul>
+    </div>
+    </div>
+
+
+    <button @click="go_to_any_service_page('q_a')" class="go_to_any_service_page">q_a</button>
+    <div v-if="temporary_list[0]">
+    <div class="flex_child q_a_data" ref="flex_child_display_q_a_data">
+    <ul>
+    <li v-for="(DATA_VAL, DATA_IDX) in temporary_list[0]">
+        <ul>
+            <li v-for="(Other_Of_One, Other_Of_One_I) in other_data_type(DATA_VAL['data_type'])">
+                <button @click="synapse(DATA_VAL['data_type'], Other_Of_One,
+                    data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data1'],
+                    data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data2'],
+                )">synapse: {{ Other_Of_One }}</button>
+            </li>
+        </ul>
+        <div>data_type: {{ DATA_VAL['data_type'] }}</div>
+
+        <button @click="short_or_long( DATA_VAL['id'] )">short_or_long</button>
+        <div>{{ truncateText( data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data1'], DATA_VAL['id'] ) }}</div>
+        <div>{{ truncateText( data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data2'], DATA_VAL['id'] ) }}</div>
+        <button @click="short_or_long( DATA_VAL['id'] )">short_or_long</button>
+        <button @click="download_data(DATA_VAL['id'])">download_data</button>
+        <button @click="go_to_any_service_page_with_id(DATA_VAL['data_type'], DATA_VAL['id'])">go_to_any_service_page_with_id</button>
+        <div>id: {{ DATA_VAL['id'] }}</div>
+        <div>link: {{ DATA_VAL['link'] }}</div>
+        <div>username: <button @click="change_show_user(DATA_VAL['username'])">{{ DATA_VAL['username'] }}</button></div>
+        <div>created_at: {{ date_time_form(DATA_VAL['created_at']) }}</div>
+        <input type="text" v-model="comment" placeholder="comment">
+        <button @click="fetch_insert_comment(DATA_VAL['id'])">fetch_insert_comment</button>
+        <ul>
+        <li v-for="(COMMENT_AND_REPLIES, COMMENT_IDX) in DATA_VAL['comments_and_replies']">
+            id: {{ COMMENT_AND_REPLIES[COMMENT_IDX]['id'] }}
+            comment: {{ COMMENT_AND_REPLIES[COMMENT_IDX]['comment'] }}
+            <button @click="fetch_delete_comment(COMMENT_AND_REPLIES[COMMENT_IDX]['id'])">fetch_delete_comment</button>
+            <input type="text" v-model="comment_reply" placeholder="comment_reply">
+            <button @click="fetch_insert_comment_reply(COMMENT_AND_REPLIES[COMMENT_IDX]['id'])">fetch_insert_comment_reply</button>
+            <ul>
+                <li v-for="(REPLIES, REPLIES_PROP) in COMMENT_AND_REPLIES['comment_replies'] ">
+                id: {{ REPLIES['id'] }}
+                reply: {{ REPLIES['reply'] }}
+                username: <button @click="change_show_user(REPLIES['username'])">{{ REPLIES['username'] }}</button>
+                <button @click="fetch_delete_comment_reply(REPLIES['id'])">fetch_delete_comment_reply</button>
+                </li>
+            </ul>
+        </li>
+        </ul>
+        <span v-for="(like, like_i) in DATA_VAL['likes']">{{ '❤️' }}</span>
+        <button @click="fetch_like_increment_or_decrement(DATA_VAL['id'])">fetch_like_increment_or_decrement</button>
+
+        <ul>
+        <li v-for="(Tag, Tag_I) in DATA_VAL['tags']">
+            <span>id: {{Tag['id']}}</span>        
+            <span>Tag: <button @click="change_show_tag(Tag['tag'])">{{ Tag['tag'] }}</button></span>
+            <button @click="fetch_delete_tag(DATA_VAL['id'], Tag['id'])">fetch_delete_tag</button>
+        </li>
+        </ul>
+        <div>
+            <input list="tag-options" v-model="search_tag" @input="fetch_get_tags_for_autocomplete" @change="fetch_get_tags_for_autocomplete">
+            <datalist id="tag-options">
+                <option v-for="(tag_option, tag_option_i) in tags" :value="tag_option.tag">{{ tag_option.tag }}</option>
+            </datalist>
+            <button @click="fetch_insert_tag(DATA_VAL['id'])">fetch_insert_tag</button>
+        </div>
+        
+        <div>
+            <button @click="fetch_delete_link(DATA_VAL['id'])">fetch_delete_link</button>
+        </div>
+    </li>
+    </ul>
+    </div>
+    </div>
+
+    <button @click="go_to_any_service_page('f_i_b')" class="go_to_any_service_page">f_i_b</button>
+    <div v-if="temporary_list[1]">
+    <div class="flex_child f_i_b_data" ref="flex_child_display_f_i_b_data">
+        <ul>
+        <li v-for="(DATA_VAL, DATA_IDX) in temporary_list[1]">
+            <ul>
+                <li v-for="(Other_Of_One, Other_Of_One_I) in other_data_type(DATA_VAL['data_type'])">
+                    <button @click="synapse(DATA_VAL['data_type'], Other_Of_One,
+                        data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data1'],
+                        data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data2'],
+                    )">synapse: {{ Other_Of_One }}</button>
+                </li>
+            </ul>
+            <div>data_type: {{ DATA_VAL['data_type'] }}</div>
+
+            <button @click="short_or_long( DATA_VAL['id'] )">short_or_long</button>
+            <div>{{ truncateText( data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data1'], DATA_VAL['id'] ) }}</div>
+            <div>{{ truncateText( data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data2'], DATA_VAL['id'] ) }}</div>
+            <button @click="short_or_long( DATA_VAL['id'] )">short_or_long</button>
+            <button @click="download_data(DATA_VAL['id'])">download_data</button>
+            <button @click="go_to_any_service_page_with_id(DATA_VAL['data_type'], DATA_VAL['id'])">go_to_any_service_page_with_id</button>
+            <div>id: {{ DATA_VAL['id'] }}</div>
+            <div>link: {{ DATA_VAL['link'] }}</div>
+            <div>username: <button @click="change_show_user(DATA_VAL['username'])">{{ DATA_VAL['username'] }}</button></div>
+            <div>created_at: {{ date_time_form(DATA_VAL['created_at']) }}</div>
+            <input type="text" v-model="comment" placeholder="comment">
+            <button @click="fetch_insert_comment(DATA_VAL['id'])">fetch_insert_comment</button>
+            <ul>
+            <li v-for="(COMMENT_AND_REPLIES, COMMENT_IDX) in DATA_VAL['comments_and_replies']">
+                id: {{ COMMENT_AND_REPLIES[COMMENT_IDX]['id'] }}
+                comment: {{ COMMENT_AND_REPLIES[COMMENT_IDX]['comment'] }}
+                <button @click="fetch_delete_comment(COMMENT_AND_REPLIES[COMMENT_IDX]['id'])">fetch_delete_comment</button>
+                <input type="text" v-model="comment_reply" placeholder="comment_reply">
+                <button @click="fetch_insert_comment_reply(COMMENT_AND_REPLIES[COMMENT_IDX]['id'])">fetch_insert_comment_reply</button>
+                <ul>
+                    <li v-for="(REPLIES, REPLIES_PROP) in COMMENT_AND_REPLIES['comment_replies'] ">
+                    id: {{ REPLIES['id'] }}
+                    reply: {{ REPLIES['reply'] }}
+                    username: <button @click="change_show_user(REPLIES['username'])">{{ REPLIES['username'] }}</button>
+                    <button @click="fetch_delete_comment_reply(REPLIES['id'])">fetch_delete_comment_reply</button>
+                    </li>
+                </ul>
+            </li>
+            </ul>
+            <span v-for="(like, like_i) in DATA_VAL['likes']">{{ '❤️' }}</span>
+            <button @click="fetch_like_increment_or_decrement(DATA_VAL['id'])">fetch_like_increment_or_decrement</button>
+    
+            <ul>
+            <li v-for="(Tag, Tag_I) in DATA_VAL['tags']">
+                <span>id: {{Tag['id']}}</span>        
+                <span>Tag: <button @click="change_show_tag(Tag['tag'])">{{ Tag['tag'] }}</button></span>
+                <button @click="fetch_delete_tag(DATA_VAL['id'], Tag['id'])">fetch_delete_tag</button>
+            </li>
+            </ul>
+            <div>
+                <input list="tag-options" v-model="search_tag" @input="fetch_get_tags_for_autocomplete" @change="fetch_get_tags_for_autocomplete">
+                <datalist id="tag-options">
+                    <option v-for="(tag_option, tag_option_i) in tags" :value="tag_option.tag">{{ tag_option.tag }}</option>
+                </datalist>
+                <button @click="fetch_insert_tag(DATA_VAL['id'])">fetch_insert_tag</button>
+            </div>
+            
+            <div>
+                <button @click="fetch_delete_link(DATA_VAL['id'])">fetch_delete_link</button>
+            </div>
+        </li>
+        </ul>
+    </div>
+    </div>
+
+    <button @click="go_to_any_service_page('i_t_n')" class="go_to_any_service_page">i_t_n</button>
+    <div v-if="temporary_list[2]">
+    <div class="flex_child i_t_n_data" ref="flex_child_display_i_t_n_data">
+        <ul>
+        <li v-for="(DATA_VAL, DATA_IDX) in temporary_list[2]">
+            <ul>
+                <li v-for="(Other_Of_One, Other_Of_One_I) in other_data_type(DATA_VAL['data_type'])">
+                    <button @click="synapse(DATA_VAL['data_type'], Other_Of_One,
+                        data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data1'],
+                        data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data2'],
+                    )">synapse: {{ Other_Of_One }}</button>
+                </li>
+            </ul>
+            <div>data_type: {{ DATA_VAL['data_type'] }}</div>
+
+            <button @click="short_or_long( DATA_VAL['id'] )">short_or_long</button>
+            <div>{{ truncateText( data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data1'], DATA_VAL['id'] ) }}</div>
+            <div>{{ truncateText( data_json_parse_data1_data2(DATA_VAL['data_json_str'])['data2'], DATA_VAL['id'] ) }}</div>
+            <button @click="short_or_long( DATA_VAL['id'] )">short_or_long</button>
+            <button @click="download_data(DATA_VAL['id'])">download_data</button>
+            <button @click="go_to_any_service_page_with_id(DATA_VAL['data_type'], DATA_VAL['id'])">go_to_any_service_page_with_id</button>
+            <div>id: {{ DATA_VAL['id'] }}</div>
+            <div>link: {{ DATA_VAL['link'] }}</div>
+            <div>username: <button @click="change_show_user(DATA_VAL['username'])">{{ DATA_VAL['username'] }}</button></div>
+            <div>created_at: {{ date_time_form(DATA_VAL['created_at']) }}</div>
+            <input type="text" v-model="comment" placeholder="comment">
+            <button @click="fetch_insert_comment(DATA_VAL['id'])">fetch_insert_comment</button>
+            <ul>
+            <li v-for="(COMMENT_AND_REPLIES, COMMENT_IDX) in DATA_VAL['comments_and_replies']">
+                id: {{ COMMENT_AND_REPLIES[COMMENT_IDX]['id'] }}
+                comment: {{ COMMENT_AND_REPLIES[COMMENT_IDX]['comment'] }}
+                <button @click="fetch_delete_comment(COMMENT_AND_REPLIES[COMMENT_IDX]['id'])">fetch_delete_comment</button>
+                <input type="text" v-model="comment_reply" placeholder="comment_reply">
+                <button @click="fetch_insert_comment_reply(COMMENT_AND_REPLIES[COMMENT_IDX]['id'])">fetch_insert_comment_reply</button>
+                <ul>
+                    <li v-for="(REPLIES, REPLIES_PROP) in COMMENT_AND_REPLIES['comment_replies'] ">
+                    id: {{ REPLIES['id'] }}
+                    reply: {{ REPLIES['reply'] }}
+                    username: <button @click="change_show_user(REPLIES['username'])">{{ REPLIES['username'] }}</button>
+                    <button @click="fetch_delete_comment_reply(REPLIES['id'])">fetch_delete_comment_reply</button>
+                    </li>
+                </ul>
+            </li>
+            </ul>
+            <span v-for="(like, like_i) in DATA_VAL['likes']">{{ '❤️' }}</span>
+            <button @click="fetch_like_increment_or_decrement(DATA_VAL['id'])">fetch_like_increment_or_decrement</button>
+    
+            <ul>
+            <li v-for="(Tag, Tag_I) in DATA_VAL['tags']">
+                <span>id: {{Tag['id']}}</span>        
+                <span>Tag: <button @click="change_show_tag(Tag['tag'])">{{ Tag['tag'] }}</button></span>
+                <button @click="fetch_delete_tag(DATA_VAL['id'], Tag['id'])">fetch_delete_tag</button>
+            </li>
+            </ul>
+            <div>
+                <input list="tag-options" v-model="search_tag" @input="fetch_get_tags_for_autocomplete" @change="fetch_get_tags_for_autocomplete">
+                <datalist id="tag-options">
+                    <option v-for="(tag_option, tag_option_i) in tags" :value="tag_option.tag">{{ tag_option.tag }}</option>
+                </datalist>
+                <button @click="fetch_insert_tag(DATA_VAL['id'])">fetch_insert_tag</button>
+            </div>
+            
+            <div>
+                <button @click="fetch_delete_link(DATA_VAL['id'])">fetch_delete_link</button>
+            </div>
+        </li>
+        </ul>
+    </div>
+    </div>
+
+
+
+
+</div>
+
+</body>
+<script>
+const app = Vue.createApp({
+data() {
+    return {
+        synapse_visible: false,
+name: 'user1',
+password: 'user_pass1',
+web_data: {},
+link: 'https://yanaka.dev/',
+comment: 'comment1',
+comment_reply: 'comRep',
+data: null,
+new_tag: '',
+search_tag: '',
+tags: [],
+data_type: 'q_a',
+data_json_str: '{"data1": "question1", "data2": "answer1"}',
+data1: '',
+data2: '',
+// list_order: [],
+// test_ary: [],
+
+// 'Checked' or 'Unchecked'
+web_data_id_isChecked: true,
+q_a_data_id_isChecked: true,
+f_i_b_data_id_isChecked: true,
+i_t_n_data_id_isChecked: true,
+
+only_q_a_list: [],
+only_f_i_b_list: [],
+only_i_t_n_list: [],
+
+list_0: [],
+list_1: [],
+list_2: [],
+temporary_list: [],
+DATA_TYPE_ARRAY: [
+    'q_a',
+    'f_i_b',
+    'i_t_n',
+],
+
+show_user: '',
+show_tag: '',
+show_order_by: 'DESC',
+
+serviceList: [
+  {'name': 'q_a', 'desc': 'flash card: Question Answer'},
+  {'name': 'f_i_b', 'desc': 'fill in blank question: Fill In Blank'},
+  {'name': 'i_t_n', 'desc': 'flash card with image: Image To Name'},
+],
+urlList: [],
+truncate_text_length: 100,
+untruncate_text_array: [],
+// endpoint: 'http://localhost:8000',
+endpoint: 'https://cotton-concrete-catsup.glitch.me',
+
+
+comment_and_tag_visible: false,
+
+    }},
+watch: {
+    // separate_each_listをdeep watchする
+    web_data: {
+        handler: function (newVal, oldVal) {
+            this.separate_each_list();
+        },
+        deep: true,
+    },
+    show_user: {
+        async handler(newVal, oldVal) {
+            await this.fetch_read_all();
+        },
+        deep: true,
+    },
+    show_tag: {
+        async handler(newVal, oldVal) {
+            await this.fetch_read_all();
+        },
+        deep: true,
+    },
+    show_order_by: {
+        async handler(newVal, oldVal) {
+            await this.fetch_read_all();
+        },
+        deep: true,
+    },
+},
+beforeMounte(){
+},
+mounted() {
+    this.loadSites();
+    // this.fetch_hello_world();
+    this.fetch_read_all();
+    this.fetch_get_tags_for_autocomplete();
+},
+beforeUpdate() {
+},
+updated() {
+},
+methods: {
+
+
+async fetch_test_db_init(){
+    const res = await fetch(this.endpoint + '/test_db_init', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ name: this.name, password: this.password, link: this.link, test_mode: 'TEST_MODE' }),
+    });
+    const data = await res.json(); console.log(data);
+},
+
+// read_allをfetchする関数
+async fetch_hello(){
+    const res = await fetch(this.endpoint + '/', {method: 'GET', headers: {'Content-Type': 'application/json',},});
+    const hello_data = await res.json();
+    console.log(hello_data);
+},
+async fetch_read_all(){
+    this.show_user = this.show_user === '' ? '' : this.show_user;
+    this.show_tag = this.show_tag === '' ? '' : this.show_tag;
+    const params_for_get = {
+        user: this.show_user,
+        tag: this.show_tag,
+        order_by: this.show_order_by,
+    };
+    const url = new URL(this.endpoint + '/' + 'read_all');
+    url.search = new URLSearchParams(params_for_get).toString();
+    const res = await fetch(url, {method: 'GET', headers: {'Content-Type': 'application/json',},});
+    this.web_data = await res.json(); console.log(this.web_data);
+},
+
+// req.body.data_type, req.body.data_json
+async fetch_insert_link(){
+try {
+    const error_check_data1_data2 = (data1, data2) => {
+        switch (true) {
+            case data1 === undefined || data1 === null || data1.length === 0: return 'data1が空です'; break;
+            case data2 === undefined || data2 === null || data2.length === 0: return 'data2が空です'; break;
+            default: return 'OK'; break;
+        }
+    };
+
+    const error_check_insert_data = (data_type, data_json_str) => {
+        const is_include_DATA_TYPE = (target_data_type_str) => this.DATA_TYPE_ARRAY.some((DATA_TYPE) => target_data_type_str === DATA_TYPE);
+        switch (true) {
+            case data_json_str === undefined: return 'dataが空です'; break;
+            case data_json_str.length > 10000: return 'dataが長すぎます'; break;
+            case !is_include_DATA_TYPE(data_type): return '許可されていないdata_typeです'; break;
+            default: return 'OK'; break;
+        }
+    };
+
+    error_check_data1_data2(this.data1, this.data2) === 'OK' ? null : (()=>{throw new Error(error_check_data1_data2(this.data1, this.data2))})();
+
+
+    const data_convert_jsonstr = (data1, data2) => JSON.stringify({'data1': data1, 'data2': data2});
+    const data_json_str = data_convert_jsonstr(this.data1, this.data2);
+
+    error_check_insert_data(this.data_type, data_json_str) === 'OK' ? null : (()=>{throw new Error(error_check_insert_data(this.data_type, data_json_str))})();
+
+    const res = await fetch(this.endpoint + '/insert_link', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ name: this.name, password: this.password, link: this.link,
+            data_type: this.data_type,
+            data_json_str: data_json_str,
+        }),
+    });
+    const data = await res.json(); console.log(data);
+} catch (error) {
+    console.log(error);
+}
+},
+// async fetch_insert_link(){
+//     const res = await fetch(this.endpoint + '/insert_link', {method: 'POST',headers: {'Content-Type': 'application/json',},
+//         body: JSON.stringify({ name: this.name, password: this.password, link: this.link }),
+//     });
+//     const data = await res.json(); console.log(data);
+// },
+
+
+
+// async fetch_insert_link(){
+//     const res = await fetch(this.endpoint + '/insert_link', {method: 'POST',headers: {'Content-Type': 'application/json',},
+//         body: JSON.stringify({ name: this.name, password: this.password, link: this.link }),
+//     });
+//     const data = await res.json(); console.log(data);
+// },
+async fetch_delete_link(LINK_ID){
+    if (window.confirm('Are you sure you want to delete this link?')) {
+        const res = await fetch(this.endpoint + '/delete_link', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json',},
+            body: JSON.stringify({ name: this.name, password: this.password, id: LINK_ID }),
+        });
+        const data = await res.json(); 
+        console.log(data);
+    } else {
+        console.log('Delete operation cancelled by the user.');
+    }
+},
+async fetch_like_increment_or_decrement(LINK_ID){
+    const res = await fetch(this.endpoint + '/like_increment_or_decrement', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ name: this.name, password: this.password, link_id: LINK_ID }),
+    });
+    const data = await res.json(); console.log(data);
+},
+async fetch_insert_comment(LINK_ID){
+    const res = await fetch(this.endpoint + '/insert_comment', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ name: this.name, password: this.password, link_id: LINK_ID, comment: this.comment }),
+    });
+    const data = await res.json(); console.log(data);
+},
+async fetch_delete_comment(COMMENT_ID){
+    console.log(COMMENT_ID);
+    const res = await fetch(this.endpoint + '/delete_comment', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ name: this.name, password: this.password, comment_id: COMMENT_ID }),
+    });
+    const data = await res.json(); console.log(data);
+},
+async fetch_insert_comment_reply(COMMENT_ID){
+    console.log(COMMENT_ID);
+    const res = await fetch(this.endpoint + '/insert_comment_reply', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ name: this.name, password: this.password, comment_id: COMMENT_ID, comment_reply: this.comment_reply }),
+    });
+    const data = await res.json(); console.log(data);
+},
+async fetch_delete_comment_reply(COMMENT_REPLY_ID){
+    const res = await fetch(this.endpoint + '/delete_comment_reply', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ name: this.name, password: this.password, comment_reply_id: COMMENT_REPLY_ID }),
+    });
+    this.data = await res.json(); console.log(this.data);
+},
+async fetch_insert_tag(LINK_ID){
+    const res = await fetch(this.endpoint + '/insert_tag', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        // body: JSON.stringify({ name: this.name, password: this.password, link_id: LINK_ID, new_tag: this.new_tag }),
+        body: JSON.stringify({ name: this.name, password: this.password, link_id: LINK_ID, new_tag: this.search_tag }),
+    });
+    const data = await res.json(); console.log(data);
+},
+async fetch_get_tags_for_autocomplete(){
+    const res = await fetch(this.endpoint + '/get_tags_for_autocomplete', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ name: this.name, password: this.password, search_tag: this.search_tag }),
+    });
+    const data = await res.json();
+    this.tags = data['message'];
+    // this.new_tag = '';
+    // const is_include_search_tag = this.tags.some((TAG) => TAG['tag'] === this.search_tag);
+    // this.new_tag = is_include_search_tag ? '' : this.search_tag;
+    // console.log('this.new_tag',this.new_tag);
+    // console.log('is_include_search_tag',is_include_search_tag);
+    // console.log('this.search_tag',this.search_tag);
+
+},
+async fetch_delete_tag(LINK_ID, TAG_ID){
+    const res = await fetch(this.endpoint + '/delete_tag', {method: 'POST',headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ name: this.name, password: this.password, id: TAG_ID, link_id: LINK_ID, }),
+    });
+    const data = await res.json(); console.log(data);
+},
+all_error_check(){
+    const error_check_for_insert_comment = (comment, DATA_LIMIT) => {
+        const reserved_words = ['SELECT', 'FROM', 'WHERE', 'INSERT', 'DELETE', 'UPDATE', 'DROP', 'ALTER', 'CREATE', 'TABLE', 'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'TRUE', 'FALSE'];
+        switch (true) {
+            case comment === undefined: return {res: 'commentが空の場合はエラー', status: false};
+            case comment.length > DATA_LIMIT: return {res: 'commentの文字数がdata_limitを超える場合はエラー', status: false};
+            case comment.length === 0: return {res: '0文字の場合はエラー', status: false};
+            case comment.match(/[!-/:-@[-`{-~]/g): return {res: '記号を含む場合はエラー', status: false};
+            case comment.match(/\s/g): return {res: '空白を含む場合はエラー', status: false};
+            case comment.length > 300: return {res: '300文字以上はエラー', status: false};
+            case reserved_words.includes(comment): return {res: 'SQLの予約語を含む場合はエラー', status: false};
+            default: return {res: 'OK', status: true};
+        }
+    }
+    const error_check_for_insert_comment_reply = (comment_reply, DATA_LIMIT) => {
+        const reserved_words = ['SELECT', 'FROM', 'WHERE', 'INSERT', 'DELETE', 'UPDATE', 'DROP', 'ALTER', 'CREATE', 'TABLE', 'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'TRUE', 'FALSE'];
+        switch (true) {
+            case comment_reply === undefined: return {res: 'comment_replyが空の場合はエラー', status: false};
+            case comment_reply.length > DATA_LIMIT: return {res: 'comment_replyの文字数がdata_limitを超える場合はエラー', status: false};
+            case comment_reply.length === 0: return {res: '0文字の場合はエラー', status: false};
+            case comment_reply.match(/[!-/:-@[-`{-~]/g): return {res: '記号を含む場合はエラー', status: false};
+            case comment_reply.match(/\s/g): return {res: '空白を含む場合はエラー', status: false};
+            case comment_reply.length > 10: return {res: '10文字以上はエラー', status: false};
+            case reserved_words.includes(comment_reply): return {res: 'SQLの予約語を含む場合はエラー', status: false};
+            default: return {res: 'OK', status: true};
+        }
+    }
+    const error_check_for_insert_tag = (tag) => {
+        const reserved_words = ['SELECT', 'FROM', 'WHERE', 'INSERT', 'DELETE', 'UPDATE', 'DROP', 'ALTER', 'CREATE', 'TABLE', 'INTO', 'VALUES', 'AND', 'OR', 'NOT', 'NULL', 'TRUE', 'FALSE'];
+        switch (true) {
+            case tag === undefined: return {res: 'tagが空です', status: false};
+            case tag.match(/[!-/:-@[-`{-~]/g): return {res: '記号を含む場合はエラー', status: false};
+            case tag.match(/\s/g): return {res: '空白を含む場合はエラー', status: false};
+            case tag.length > 7: return {res: '7文字以上はエラー', status: false};
+            case reserved_words.includes(tag): return {res: 'SQLの予約語を含む場合はエラー', status: false};
+            default: return {res: 'OK', status: true};
+        }
+    }
+},
+date_time_form(DATE_TIME){
+    // const date = new Date('2023-09-22T16:40:19.249Z');
+    const date = new Date(DATE_TIME);
+    const formattedDate = date.toLocaleString('ja-JP', {year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false});
+    // console.log(formattedDate);
+    return formattedDate;
+},
+
+
+data_json_parse_data1_data2(JSON_STR_DATA1_DATA2){
+    return JSON.parse(JSON_STR_DATA1_DATA2);
+},
+download_data(ID){
+x = ID;
+this.data_type = this.web_data.message.filter(V=>V['id'] === ID)[0].data_type;
+this.data1 = JSON.parse(this.web_data.message.filter(V=>V['id'] === ID)[0].data_json_str).data1;
+this.data2 = JSON.parse(this.web_data.message.filter(V=>V['id'] === ID)[0].data_json_str).data2;
+// console.log(x);
+// console.log(x, a,b,c);
+
+// this.data_type = this.web_data.message[ID].data_type;
+// this.data1 = JSON.parse(this.web_data.message[ID].data_json_str).data1;
+// this.data2 = JSON.parse(this.web_data.message[ID].data_json_str).data2;
+},
+separate_each_list(){
+    this.only_q_a_list = this.web_data['message'].filter((DATA_VAL) => DATA_VAL['data_type'] === 'q_a');
+    this.only_f_i_b_list = this.web_data['message'].filter((DATA_VAL) => DATA_VAL['data_type'] === 'f_i_b');
+    this.only_i_t_n_list = this.web_data['message'].filter((DATA_VAL) => DATA_VAL['data_type'] === 'i_t_n');
+    this.temporary_list = [
+            this.only_q_a_list,
+            this.only_f_i_b_list,
+            this.only_i_t_n_list,
+        ];
+},
+other_data_type(DATA_TYPE){
+    return this.DATA_TYPE_ARRAY.filter(V=>V !== DATA_TYPE);
+},
+async synapse(FROM_TYPE='q_a', TO_TYPE='i_t_n', DATA_1, DATA_2){
+    // confirmでOKを押したら、synapseを実行する
+    if (window.confirm('synapse?')) {
+        this.data1 = DATA_1;
+        this.data2 = DATA_2;
+        this.data_type = TO_TYPE;
+        await this.fetch_insert_link();
+    } else {
+        console.log('Synapse cancelled');
+    }
+},
+change_show_user(USER){
+    this.show_user = USER;
+},
+show_all_user(){
+    this.show_user = '';
+},
+
+change_show_tag(TAG){
+    this.show_tag = TAG;
+},
+show_all_tag(){
+    this.show_tag = '';
+},
+change_show_order_by(){
+    this.show_order_by = this.show_order_by === 'DESC' ? 'ASC' : 'DESC';
+},
+
+
+
+to_ary(it){
+    return JSON.parse(JSON.stringify(it));
+},
+loadSites() {
+    // テスト環境でも本番環境でも動く
+    // http://127.0.0.1:3000/ or https://taroyanaka.github.io/q_a/ を想定
+    function getBaseURL() {
+        const url = window.location.href;
+        let baseURL = new URL(url).origin;
+        // baseURLがlocalhostを含んでいない場合baseURLをhttps://taroyanaka.github.io/q_a/に書き換える
+        // if (baseURL.includes('localhost') || baseURL.includes('http://127.0.0.1/')) {}
+        if(baseURL.includes('taroyanaka.github.io')){
+            baseURL = 'https://taroyanaka.github.io/q_a';
+        }
+        return baseURL;
+    }
+    // getBaseURL()でurlListを更新する
+    this.urlList = this.serviceList.map(it => getBaseURL() + '/' + it['name'] + '.html');
+    return this.urlList;
+},
+
+
+
+truncateText(text, id) {
+    // this.truncate_text_array.push(id);
+    if (text.length > this.truncate_text_length && !this.untruncate_text_array.includes(id)) {
+        return text.substring(0, this.truncate_text_length) + '...';
+    } else {
+        return text;
+    }
+},
+short_or_long(id) {
+    // untruncate_text_arrayにidが含まれていない場合は追加する。含まれている場合は削除する
+    const is_include_id = this.untruncate_text_array.includes(id);
+    is_include_id ? this.untruncate_text_array.splice(this.untruncate_text_array.indexOf(id), 1) : this.untruncate_text_array.push(id);
+},
+
+
+
+
+go_to_any_service_page(Service='portal'){
+    switch (Service) {
+        case 'portal': window.location.href = 'portal.html';break;
+        case 'q_a': window.location.href = 'q_a.html';break;
+        case 'f_i_b': window.location.href = 'f_i_b.html';break;
+        case 'i_t_n': window.location.href = 'i_t_n.html';break;
+        default: break;
+    }
+},
+go_to_any_service_page_with_id(Service='portal',Id=0){
+    const id = Id.toString();
+    switch (Service) {
+        case 'portal': window.location.href = ('portal.html' + '?id=' + id);break;
+        case 'q_a': window.location.href = ('q_a.html' + '?id=' + id);break;
+        case 'f_i_b': window.location.href = ('f_i_b.html' + '?id=' + id);break;
+        case 'i_t_n': window.location.href = ('i_t_n.html' + '?id=' + id);break;
+        default: break;
+    }
+},
+
+flex_child_change_display(){
+    this.web_data_id_isChecked === true ?
+    (this.$refs.flex_child_display_web_data.classList.add("flex_child"), this.$refs.flex_child_display_web_data.classList.remove("display_none")) : 
+    (this.$refs.flex_child_display_web_data.classList.add("display_none"), this.$refs.flex_child_display_web_data.classList.remove("flex_child")) ;
+
+    this.q_a_data_id_isChecked === true ?
+    (this.$refs.flex_child_display_q_a_data.classList.add("flex_child"), this.$refs.flex_child_display_q_a_data.classList.remove("display_none")) :
+    (this.$refs.flex_child_display_q_a_data.classList.add("display_none"), this.$refs.flex_child_display_q_a_data.classList.remove("flex_child")) ;
+
+    this.f_i_b_data_id_isChecked === true ?
+    (this.$refs.flex_child_display_f_i_b_data.classList.add("flex_child"), this.$refs.flex_child_display_f_i_b_data.classList.remove("display_none")) :
+    (this.$refs.flex_child_display_f_i_b_data.classList.add("display_none"), this.$refs.flex_child_display_f_i_b_data.classList.remove("flex_child")) ;
+
+    this.i_t_n_data_id_isChecked === true ?
+    (this.$refs.flex_child_display_i_t_n_data.classList.add("flex_child"), this.$refs.flex_child_display_i_t_n_data.classList.remove("display_none")) :
+    (this.$refs.flex_child_display_i_t_n_data.classList.add("display_none"), this.$refs.flex_child_display_i_t_n_data.classList.remove("flex_child")) ;
+},
+
+
+comment_and_tag_toggle() {
+    this.comment_and_tag_visible = !this.comment_and_tag_visible;
+},
+choice_emoji(Service) {
+    return Service === 'q_a' ? '🟰' : Service === 'f_i_b' ? '🕳️' : Service === 'i_t_n' ? '🖼️' : '📝';
+},
+showDialog() {
+    // showDialogをクリックしたら.synapseを表示/非表示の切り替えをする
+    this.synapse_visible = !this.synapse_visible;
+
+}
+
+
+},
+}).mount('.app');
+</script>
+</html>

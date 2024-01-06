@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>memory system of tile style: sample</title>
+
+<!-- <link rel="manifest" href="manifest.json"> -->
+
+<!-- https://taroyanaka.github.io/q_a/sample_data_for_index3.txt -->
+
+<link rel="stylesheet" href="./lib/reset.css">
+<!-- <script src="./lib/localforage@1.10.0.js"></script> -->
+<script src="./lib/vue@3.2.36.global.prod.js"></script>
+<script src="./lib/ramda.@0.28.0.js"></script>
+<script src="./lib/shuffle.js"></script>
+<script src="./lib/my_global_function_for_q_a.js" defer></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/localforage@1.10.0/dist/localforage.min.js"></script> -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/vue@3.2.45/dist/vue.global.prod.js"></script> -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/ramda/0.28.0/ramda.min.js"></script> -->
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.5.0-beta4/html2canvas.min.js"></script>
+<style>
+:root {
+}
+.app{
+}
+.block1{
+    font-size: 1rem;
+}
+input[type="text"]{
+    width: 3rem;
+    height: 1rem;
+}
+button{
+    /* buttonのborderを消す */
+    border: none;
+
+    width: 1rem;
+    height: 20px;
+}
+.change_to_no_show_all{
+    /* 画面に追従して常に示する */
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    z-index: 1;
+}
+.remove_all_checked_items{
+    /* 画面に追従して常に示する */
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    z-index: 1;
+}
+/* 画面端で要素が折り返され内容に設定するCSSを.appに適用する */
+.app *{
+    /* 画面端で要素が折り返され内容に設定するCSS */
+    white-space: pre-wrap;
+    /* 画面端で要素が折り返され内容に設定するCSS */
+    word-break: break-all;
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+.center_bottom{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+}
+/* checkboxを2倍の大きさにする */
+input[type="checkbox"] {
+    transform: scale(2);
+    margin-right: 1rem;
+}
+
+.center_middle {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+.minimap{
+    z-index: 2;
+}
+.top_left{
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 2;
+}
+.top_right{
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 2;
+}
+
+</style>
+</head>
+<body class="app">
+<div id="parent_block" data-x="0" data-y="0" style="position: relative;" >
+    <div class="block1"
+    :data-x="VAL[0]"
+    :data-y="VAL[1]"
+    :style="'position: absolute;' + 'left: ' + (VAL[0]*x_rem) + 'rem;' + 'top: ' + (VAL[1]*y_rem) + 'rem;'"
+    v-for="(VAL, IDX) in data1"
+    >
+        <input type="text" 
+        :style="{ 'color': (VAL[4]['no_show'] === true ? 'transparent' : 'black') }"
+        v-model="data1[IDX][2][ data1[IDX][2]['now'] ]">
+        <button :style="{ 'display': ( checked_items['add_x'] === false ? 'none' : 'inline') }" @click="add_x(IDX)">x</button>
+        <button :style="{ 'display': ( checked_items['add_y'] === false ? 'none' : 'inline') }" @click="add_y(IDX)">y</button>
+        <button :style="{ 'display': ( checked_items['remove_block'] === false ? 'none' : 'inline') }" @click="remove_block(IDX)">/</button>
+        <button :style="{ 'display': ( checked_items['flip'] === false ? 'none' : 'inline') }" @click="flip(IDX)">|</button>
+        <button :style="{ 'display': ( checked_items['change_to_no_show'] === false ? 'none' : 'inline') }" @click="change_to_no_show(IDX)">!</button>
+        <button :style="{ 'display': ( checked_items['change_show_full'] === false ? 'none' : 'inline') }" @click="change_show_full(IDX)">0</button>
+        <button :style="{ 'display': ( checked_items['change_show_first'] === false ? 'none' : 'inline') }" @click="change_show_first(IDX)">1</button>
+        <button :style="{ 'display': ( checked_items['change_show_last'] === false ? 'none' : 'inline') }" @click="change_show_last(IDX)">-</button>
+        <button :style="{ 'display': ( checked_items['data_a_data_b_set_x'] === false ? 'none' : 'inline') }" @click="data_a_data_b_set_x(IDX)">></button>
+        <button :style="{ 'display': ( checked_items['data_a_data_b_set_y'] === false ? 'none' : 'inline') }" @click="data_a_data_b_set_y(IDX)">↓</button>
+        <button :style="{ 'display': ( checked_items['set_data_a_data_b_to_data1_x'] === false ? 'none' : 'inline') }" @click="set_data_a_data_b_to_data1_x(VAL[0], VAL[1])">x</button>
+        <button :style="{ 'display': ( checked_items['set_data_a_data_b_to_data1_y'] === false ? 'none' : 'inline') }" @click="set_data_a_data_b_to_data1_y(VAL[0], VAL[1])">y</button>
+    </div>
+</div>
+
+<div class="change_to_no_show_all">
+    <button @click="change_to_no_show_all()">!</button>
+</div>
+<div class="remove_all_checked_items">
+    <button @click="remove_all_checked_items">&</button>
+</div>
+
+<div class="top_left">
+    <button @click="scrollToPosition(0, 0)">0,0</button>
+</div>
+<div class="top_right">
+    <button onclick="mapping()">mapping</button>
+    <button onclick="delete_map()">delete map</button>
+</div>
+
+<template class="center_bottom">
+    <div>
+      <div v-for="(item, index) in checked_items" :key="index">
+        <!-- <input type="checkbox" :value="item" v-model="checked_items[index]" @change="checked_items_fn(index)">{{ index }} -->
+      </div>
+      <!-- <div>Checked items: {{ checked_items }}</div> -->
+    </div>
+</template>      
+
+<div class="center_middle">
+    <textarea name="" class="" v-model="data_a" id="" cols="30" rows="10"></textarea>
+    <textarea name="" class="" v-model="data_b" id="" cols="30" rows="10"></textarea>
+</div>
+
+</body>
+<script>
+const app = Vue.createApp({
+data() {
+return {
+    current_x_y: [],
+    data_a: 'abc\ndef\nghi\njkl\nmno\npqr\nstu\nvwx\nyz\n012\n345\n678\n9',
+    data_b: 'ABC\nDEF\nGHI\nJKL\nMNO\nPQR\nSTU\nVWX\nYZ\n012\n345\n678\n9',
+
+display_none_or_inline: false,
+original_x_rem: 16,
+original_y_rem: 1.3,
+x_rem: 16,
+y_rem: 1.3,
+short_x_rem: 3.5,
+short_y_rem: 1.3,
+data1_template: [
+        {now: 'full', full: 'text10', first: 't', last: '0'},
+        {now: 'full', full: 'TEXT22', first: 'T', last: '2'},
+        {no_show: false},
+    ],
+data1: [],
+// test_mode: true,
+test_mode: false,
+all_show_or_none: 'show',
+
+checked_items: {
+add_x: true,
+add_y: true,
+remove_block: true,
+flip: true,
+change_to_no_show: true,
+change_show_full: true,
+change_show_first: true,
+change_show_last: true,
+data_a_data_b_set_x: true,
+data_a_data_b_set_y: true,
+set_data_a_data_b_to_data1_x: true,
+set_data_a_data_b_to_data1_y: true,
+},
+
+}},
+watch: {
+    data1: {
+        handler() {
+            this.make_first_last();
+        },
+        deep: true
+    },
+    checked_items: {
+        handler() {
+            // this.make_first_last();
+            // this.data1.push([0, 0, ...this.data1_template]);
+            this.init(0, 0);
+            this.test_mode === true ? this.test() : null;
+        },
+        deep: true
+    },
+},
+beforeCreate(){},
+created(){},
+beforeMount(){},
+mounted(){
+    this.init(0, 0);
+    this.test_mode === true ? this.test() : null;
+},
+beforeUpdate(){},
+updated(){},
+methods: {
+    init(X, Y){
+        this.data1.push([X, Y, ...R.clone(this.data1_template)]);
+    },
+make_first_last(){
+    this.data1.forEach((val) => {
+        val[2]['first'] = val[2]['full'].slice(0, 1);
+        val[2]['last'] = val[2]['full'].slice(-1);
+    });
+},
+check_add_xy(x, y){
+    // return true when there is same x,y in data1, one line fn
+    return this.data1.some((val) => {
+        return (val[0] === x && val[1] === y);
+    });
+},
+make_block(IDX, x, y){
+    return [IDX, 0,
+        R.clone([x, y, ...R.clone(this.data1_template)])
+    ];
+},
+add_x(IDX){
+    // early return when there is same x,y in data1
+    if(this.check_add_xy(this.data1[IDX][0]+1, this.data1[IDX][1])){
+        console.log('same x,y');
+        return;
+    }
+    // add x offset from IDX block
+    this.data1.splice(
+        ...this.make_block(IDX, this.data1[IDX][0]+1, this.data1[IDX][1])
+    );
+},
+add_y(IDX){
+    // early return when there is same x,y in data1
+    if(this.check_add_xy(this.data1[IDX][0], this.data1[IDX][1]+1)){
+        console.log('same x,y');
+        return;
+    }
+    // add y offset from IDX block
+    this.data1.splice(
+        ...this.make_block(IDX, this.data1[IDX][0], this.data1[IDX][1]+1)
+    );
+},
+check_remove_xy(x, y){
+    // return true when +1x or +1y from IDX block
+    return this.data1.some((val) => {
+        return (val[0] === x+1 && val[1] === y) || (val[0] === x && val[1] === y+1);
+    });
+},
+remove_block(IDX){
+    // IDXのblockがx,yが0,0の場合は削除しない
+    if(this.data1[IDX][0] === 0 && this.data1[IDX][1] === 0){
+        console.log('0,0');
+        return;
+    }
+    // early return when +1x or +1y from IDX block
+    if(this.check_remove_xy(this.data1[IDX][0], this.data1[IDX][1])){
+        console.log('+1 x,y');
+        return;
+    }
+    this.data1.splice(IDX, 1);
+},
+change_to_no_show(IDX){
+    this.data1[IDX][4]['no_show'] = this.data1[IDX][4]['no_show'] === true ? false : true;
+},
+change_to_no_show_all(){
+    this.all_show_or_none = this.all_show_or_none === 'show' ? 'none' : 'show';
+    this.data1.forEach((val) => {
+        if(this.all_show_or_none === 'show'){
+            val[4]['no_show'] = false;
+        }
+        if(this.all_show_or_none === 'none'){
+            val[4]['no_show'] = true;
+        }
+    });
+},
+change_show_full(IDX){
+    this.data1[IDX][4]['no_show'] = false;
+    this.data1[IDX][2]['now'] = 'full';
+},
+change_show_first(IDX){
+    this.data1[IDX][4]['no_show'] = false;
+    this.data1[IDX][2]['now'] = 'first';
+},
+change_show_last(IDX){
+    this.data1[IDX][4]['no_show'] = false;
+    this.data1[IDX][2]['now'] = 'last';
+},
+flip(IDX){
+    // IDXのdata1の[2]を[3]とスワップする
+    this.data1[IDX][2] = [this.data1[IDX][3], this.data1[IDX][3] = this.data1[IDX][2]][0];
+},
+test(){
+    let test_ary = [[1, 0],[2, 0],[3, 0],[4, 0],[0, 1],[0, 2],[0, 3],[0, 4],[0, 5],[3, 1],[3, 2],[3, 3],[3, 4],[3, 5],[3, 6],[4, 5],[5, 5],[5, 6],[5, 7],
+        [1, 2],[1, 3],[1,4],[1, 6],[1, 7],
+        [0,6],[0,7],
+    ];
+    test_ary = make_data1();
+    // test_ary = make_data1_2();
+    test_ary.forEach((val) => {
+        // this.data1.push([val[0], val[1], ...this.data1_template]);
+        this.init(val[0], val[1]);
+    });
+    // [0,0]の位置にスクロールする
+    // this.scrollToPosition(0, 0);
+
+},
+checked_items_fn(){
+    try {
+        const checked_items_count = Object.values(this.checked_items).length;
+    // checked_itemsのtrueの数からx_remを決定する(checked_itemsのtrueの数が多いほどx_remが小さくなる)
+    const checked_items_true_count = Object.values(this.checked_items).filter((val) => val === true).length;
+    this.x_rem = this.original_x_rem - (checked_items_count - checked_items_true_count);
+    } catch (error) {
+        console.log(error);
+        
+    }
+
+},
+remove_all_checked_items(){
+    console.log('remove_all_checked_items');
+    function exe(True_Or_False){
+        // checked_itemsの全ての値をTrue_Or_Falseにする
+        Object.keys(this.checked_items).forEach((val) => {
+            this.checked_items[val] = True_Or_False;
+        });
+    }
+    // checked_itemsが全てfalseであれば、全てのchecked_itemsをtrueにし、早期リターンする
+    if(Object.values(this.checked_items).every((val) => val === false)){
+        exe(true);
+        this.checked_items_fn();
+        return;
+    };
+    exe(false);
+    this.checked_items_fn();
+},
+data_a_data_b_set_any(IDX, X_Or_Y){
+    const x_or_y = (X_Or_Y === 'x' ? 'x' : 'y');
+    const ary = get_texts(this.data1[IDX][0], this.data1[IDX][1], x_or_y);
+    // console.log(ary);
+    if(ary === undefined){
+        return;
+    }
+    // this.data1[IDX][2]['full'] = ary[0];
+    // this.data1[IDX][3]['full'] = ary[1];
+    // data_aとdata_bの両方に代入する
+    this.data_a = ary[0];
+    this.data_b = ary[1];
+    
+},
+// IDXからx,yを取得する関数
+get_x_or_y_num(IDX){
+    return [this.data1[IDX][0], this.data1[IDX][1]];
+},
+data_a_data_b_set_x(IDX, X_Or_Y='x'){
+    this.data_a_data_b_set_any(IDX, X_Or_Y);
+},
+data_a_data_b_set_y(IDX, X_Or_Y='y'){
+    this.data_a_data_b_set_any(IDX, X_Or_Y);
+},
+scrollToPosition(x, y) {
+    // mapping();
+        const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const x_px = this.x_rem * rootFontSize * x;
+        const y_px = this.y_rem * rootFontSize * y;
+        this.current_x_y = [x, y];
+
+        window.scrollTo({
+            top: y_px,
+            left: x_px,
+            // behavior: 'smooth'
+        });
+},
+
+// data_aとdata_bをdata1に反映する関数
+set_data_a_data_b_to_data1(To_X_Or_Y, Start_X, Start_Y){
+    // data_aとdata_bを改行で分割した配列を作成する
+    const data_a_ary = this.data_a.split('\n');
+    const data_b_ary = this.data_b.split('\n');
+    // To_X_Or_Yがxの場合はx方向に、yの場合はy方向にdata1に反映する
+    const x_or_y = To_X_Or_Y === 'x' ? 0 : 1;
+    // data_a_aryとdata_b_aryを結合した配列を作成する
+    const data_a_b_ary = data_a_ary.map((val, idx) => [val, data_b_ary[idx]]);
+    data_a_b_ary.forEach((val, idx) => {
+        const x_y = [Start_X, Start_Y];
+        // data1に該当のx,yが存在しなければ、data1に追加する
+        if(this.data1.some((V) => V[0] === Start_X && V[1] === Start_Y) === false){
+            this.data1.push([Start_X, Start_Y, ...R.clone(this.data1_template)]);
+        }
+        // data1のx,yを更新する(data1から該当のx,yを取得し、fullを更新する)
+        this.data1.filter(V=>V[0] === x_y[0] && V[1] === x_y[1])[0][2]['full'] = val[0];
+        this.data1.filter(V=>V[0] === x_y[0] && V[1] === x_y[1])[0][3]['full'] = val[1];
+        To_X_Or_Y === 'x' ? Start_X++ : Start_Y++;
+    });
+},
+set_data_a_data_b_to_data1_x(Start_X, Start_Y){
+    this.set_data_a_data_b_to_data1('x', Start_X, Start_Y);
+},
+set_data_a_data_b_to_data1_y(Start_X, Start_Y){
+    this.set_data_a_data_b_to_data1('y', Start_X, Start_Y);
+},
+
+
+to_ary(it){
+    return JSON.parse(JSON.stringify(it));
+},
+
+
+
+
+},
+}).mount('.app');
+
+// get_texts関数の説明:
+    // data1の中からX_paramとY_paramを含む配列を取得し、
+    // その配列の中からX_paramとY_paramが連続している配列を取得し、
+    // その配列のfullを取得し、
+    // そのfullを改行で結合した後に、返す
+function get_texts(X_param, Y_param, axis){
+    const check = app.data1.filter(V=>V[0] === X_param && V[1] === Y_param);
+    if(check.length === 0) return;
+
+    const x_or_y = axis === 'x' ? 0 : 1;
+    let lastNum = axis === 'x' ? X_param : Y_param;
+
+    let result = app.to_ary(app.data1).map(V=>[V[0], V[1]])
+        .filter(V=>V[0] >= X_param && V[1] >= Y_param && (V[0] === X_param || V[1] === Y_param))
+        .reduce((acc, ary) => {
+            if (ary[x_or_y] === lastNum + 1) {
+                acc.push(ary);
+                lastNum++;
+            }
+            return acc;
+        }, [[X_param, Y_param]]);
+
+    return [result.map(val => app.data1.filter(V=>V[0] === val[0] && V[1] === val[1])[0][2]['full']).join('\n'),
+            result.map(val => app.data1.filter(V=>V[0] === val[0] && V[1] === val[1])[0][3]['full']).join('\n')];
+};
+
+// [0,0]から[10,10]を生成する関数(R.cloneを利用して参照を切る)
+function make_data1(){
+    let ary = [];
+    for(let i=0; i<100; i++){
+        for(let j=0; j<10; j++){
+            ary.push([i, j]);
+        }
+    }
+    return ary;
+}
+// [0,0],[1,1],[2,2]のような配列を[100,100]まで生成する関数(R.cloneを利用して参照を切る)
+function make_data1_2(){
+    let ary = [];
+    for(let i=0; i<100; i++){
+        ary.push([i, i]);
+    }
+    return ary;
+}
+function mapping(){
+
+
+    // minimapの初期化(minimapクラスを持つ要素を削除する)
+    document.querySelectorAll('.minimap').forEach((val) => {
+        val.remove();
+    });
+    // minimapImageの初期化(minimapImageクラスを持つ要素を削除する)
+    document.querySelectorAll('.minimapImage').forEach((val) => {
+        val.remove();
+    });
+    // markerの初期化(markerクラスを持つ要素を削除する)
+    document.querySelectorAll('.marker').forEach((val) => {
+        val.remove();
+    });
+
+
+    // ミニマップのコンテナを作成
+const minimapContainer = document.createElement('div');
+// minimapContainerにclassを追加
+minimapContainer.classList.add('minimap');
+
+minimapContainer.style.position = 'fixed';
+minimapContainer.style.bottom = '0';
+minimapContainer.style.right = '0';
+minimapContainer.style.width = '200px';
+minimapContainer.style.height = '200px';
+minimapContainer.style.overflow = 'hidden';
+minimapContainer.style.border = '1px solid black';
+minimapContainer.style.background = 'white';
+document.body.appendChild(minimapContainer);
+
+// ミニマップの画像を作成
+const minimapImage = document.createElement('img');
+// minimapImageにclassを追加
+minimapImage.classList.add('minimapImage');
+minimapImage.style.width = '100%';
+minimapImage.style.height = 'auto';
+minimapContainer.appendChild(minimapImage);
+
+// 現在の表示位置を示すマーカーを作成(赤い四角形)
+// const marker = document.createElement('div');
+// marker.classList.add('marker');
+// marker.style.position = 'absolute';
+// marker.style.top = app.current_x_y[1] + 'rem';
+// marker.style.left = app.current_x_y[0] + 'rem';
+// marker.style.width = '1rem';
+// marker.style.height = '1rem';
+// marker.style.border = '0.5rem solid red';
+// marker.style.background = 'transparent';
+// minimapContainer.appendChild(marker);
+
+
+
+// ページ全体のスクリーンショットを取得
+html2canvas(document.querySelector(".app"), {
+        scrollX: 0,
+        scrollY: 0
+      }).then(function(canvas) {
+// html2canvas(document.documentElement).then(canvas => {
+    // minimapImage.src = '';
+    minimapImage.src = canvas.toDataURL();
+});
+};
+
+// delete map
+function delete_map(){
+    // minimapの初期化(minimapクラスを持つ要素を削除する)
+    document.querySelectorAll('.minimap').forEach((val) => {
+        val.remove();
+    });
+    // minimapImageの初期化(minimapImageクラスを持つ要素を削除する)
+    document.querySelectorAll('.minimapImage').forEach((val) => {
+        val.remove();
+    });
+    // markerの初期化(markerクラスを持つ要素を削除する)
+    document.querySelectorAll('.marker').forEach((val) => {
+        val.remove();
+    });
+};
+
+
+// 次に実装するやつ
+    // 要素同士を1:1で関連付けしてscrollToPositionで相互にスクロールできる
+
+
+
+</script>
+</html>
